@@ -1,0 +1,15 @@
+CREATE INDEX IF NOT EXISTS idx_governance_policy_rules_policy ON governance_policy_rules(governance_policy_id, rule_code);
+CREATE INDEX IF NOT EXISTS idx_configuration_snapshots_created ON configuration_snapshots(created_at);
+CREATE INDEX IF NOT EXISTS idx_template_versions_template ON template_versions(template_id, template_status);
+CREATE INDEX IF NOT EXISTS idx_golden_test_cases_set ON golden_test_cases(golden_test_set_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_canary_runs_status ON canary_runs(run_status, created_at);
+CREATE INDEX IF NOT EXISTS idx_canary_results_run ON canary_results(canary_run_id, result_status);
+CREATE INDEX IF NOT EXISTS idx_context_packages_status ON context_packages(package_status, as_of_date);
+CREATE INDEX IF NOT EXISTS idx_context_package_items_package ON context_package_items(context_package_id, item_type);
+CREATE INDEX IF NOT EXISTS idx_context_budget_records_package ON context_budget_records(context_package_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_delta_reviews_packages ON delta_reviews(previous_context_package_id, current_context_package_id);
+CREATE INDEX IF NOT EXISTS idx_memory_items_active ON memory_items(is_active, memory_type);
+CREATE INDEX IF NOT EXISTS idx_system_health_snapshots_date ON system_health_snapshots(as_of_date, created_at);
+CREATE INDEX IF NOT EXISTS idx_read_only_sources_active ON read_only_integration_sources(is_active, source_type);
+CREATE INDEX IF NOT EXISTS idx_read_only_import_runs_source ON read_only_import_runs(integration_source_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_governance_audit_events_scope ON governance_audit_events(event_scope, severity, created_at);

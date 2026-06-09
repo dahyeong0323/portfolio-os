@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS override_tickets (
+    override_ticket_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    override_type TEXT NOT NULL CHECK(override_type IN ('emergency_buy','manual_correction','no_sync','thesis_conviction','panic','other')),
+    account_id INTEGER NOT NULL REFERENCES accounts(account_id),
+    instrument_id INTEGER REFERENCES instruments(instrument_id),
+    side TEXT CHECK(side IS NULL OR side IN ('buy','sell')),
+    requested_quantity DECIMAL_TEXT CHECK(requested_quantity IS NULL OR typeof(requested_quantity) = 'text'),
+    requested_notional DECIMAL_TEXT CHECK(requested_notional IS NULL OR typeof(requested_notional) = 'text'),
+    currency TEXT CHECK(currency IS NULL OR length(currency) = 3),
+    ledger_status_at_declaration TEXT NOT NULL CHECK(ledger_status_at_declaration IN ('reconciled','provisional','stale','broken')),
+    risk_warning TEXT NOT NULL,
+    max_suggested_notional DECIMAL_TEXT CHECK(max_suggested_notional IS NULL OR typeof(max_suggested_notional) = 'text'),
+    human_reason TEXT NOT NULL,
+    human_final_choice TEXT CHECK(human_final_choice IS NULL OR human_final_choice IN ('execute','cancel','modify')),
+    status TEXT NOT NULL CHECK(status IN ('declared','risk_warned','human_confirmed','cancelled','executed_provisional','reconciled','postmortem_due','postmortem_completed')),
+    mandatory_reconciliation_deadline TEXT,
+    mandatory_postmortem_date TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);

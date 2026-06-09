@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS order_tickets (
+    order_ticket_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    intent_id INTEGER NOT NULL REFERENCES transaction_intents(intent_id),
+    risk_validation_id INTEGER NOT NULL REFERENCES risk_validation_results(risk_validation_id),
+    account_id INTEGER NOT NULL REFERENCES accounts(account_id),
+    instrument_id INTEGER NOT NULL REFERENCES instruments(instrument_id),
+    side TEXT NOT NULL CHECK(side IN ('buy','sell')),
+    order_type TEXT NOT NULL CHECK(order_type = 'limit'),
+    ticket_quantity DECIMAL_TEXT NOT NULL CHECK(typeof(ticket_quantity) = 'text'),
+    limit_price DECIMAL_TEXT CHECK(limit_price IS NULL OR typeof(limit_price) = 'text'),
+    ticket_notional DECIMAL_TEXT NOT NULL CHECK(typeof(ticket_notional) = 'text'),
+    currency TEXT NOT NULL CHECK(length(currency) = 3),
+    status TEXT NOT NULL CHECK(status IN ('validated','approved','rejected','modified','expired','executed_provisional','reconciled','broken','cancelled')),
+    human_decision TEXT CHECK(human_decision IS NULL OR human_decision IN ('approved','rejected','modified','cancelled')),
+    human_decision_reason TEXT,
+    approved_at TEXT,
+    rejected_at TEXT,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);

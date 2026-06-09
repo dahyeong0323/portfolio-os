@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS macro_context_packets (
+    macro_context_packet_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    portfolio_context_id INTEGER REFERENCES portfolio_context_snapshots(portfolio_context_id),
+    macro_regime_id INTEGER REFERENCES macro_regime_snapshots(macro_regime_id),
+    as_of_date TEXT NOT NULL,
+    risk_on_exposure TEXT NOT NULL DEFAULT 'unknown' CHECK(risk_on_exposure IN ('low','medium','high','extreme','unknown')),
+    liquidity_sensitivity TEXT NOT NULL DEFAULT 'unknown' CHECK(liquidity_sensitivity IN ('low','medium','high','unknown')),
+    btc_related_exposure TEXT NOT NULL DEFAULT 'unknown' CHECK(btc_related_exposure IN ('low','medium','high','unknown')),
+    nasdaq_growth_exposure TEXT NOT NULL DEFAULT 'unknown' CHECK(nasdaq_growth_exposure IN ('low','medium','high','unknown')),
+    correlation_stress TEXT NOT NULL DEFAULT 'unknown' CHECK(correlation_stress IN ('normal','elevated','extreme','unknown')),
+    defensive_buffer TEXT NOT NULL DEFAULT 'unknown' CHECK(defensive_buffer IN ('adequate','thin','missing','unknown')),
+    summary_text TEXT NOT NULL,
+    metric_refs_json TEXT NOT NULL DEFAULT '[]',
+    correlation_refs_json TEXT NOT NULL DEFAULT '[]',
+    crash_rule_refs_json TEXT NOT NULL DEFAULT '[]',
+    unknowns_json TEXT NOT NULL DEFAULT '[]',
+    packet_status TEXT NOT NULL DEFAULT 'draft' CHECK(packet_status IN ('draft','valid','invalid','archived')),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);

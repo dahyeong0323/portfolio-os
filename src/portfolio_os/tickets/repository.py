@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
@@ -12,6 +13,17 @@ from portfolio_os.validators import datetime_from_text, decimal_from_text, decim
 
 def _dt(value: str | None):
     return datetime_from_text(value) if value else None
+
+
+@dataclass(frozen=True)
+class OrderTicketEvent:
+    event_id: int
+    order_ticket_id: int
+    event_type: str
+    from_status: str | None
+    to_status: str
+    event_payload_json: str | None
+    created_at: datetime | None
 
 
 def ticket_from_row(row: dict[str, Any]) -> OrderTicket:
@@ -88,3 +100,24 @@ class OrderTicketRepository:
 
     def list_open(self) -> list[OrderTicket]:
         return [ticket_from_row(row) for row in self.db.fetch_all("SELECT * FROM order_tickets WHERE status IN ('validated','approved') ORDER BY order_ticket_id")]
+
+    def list_all(self) -> list[OrderTicket]:
+        return [ticket_from_row(row) for row in self.db.fetch_all("SELECT * FROM order_tickets ORDER BY order_ticket_id")]
+
+    def list_events(self, order_ticket_id: int) -> list[OrderTicketEvent]:
+        rows = self.db.fetch_all(
+            "SELECT * FROM order_ticket_events WHERE order_ticket_id = ? ORDER BY event_id",
+            (order_ticket_id,),
+        )
+        return [
+            OrderTicketEvent(
+                event_id=row["event_id"],
+                order_ticket_id=row["order_ticket_id"],
+                event_type=row["event_type"],
+                from_status=row["from_status"],
+                to_status=row["to_status"],
+                event_payload_json=row["event_payload_json"],
+                created_at=_dt(row["created_at"]),
+            )
+            for row in rows
+        ]

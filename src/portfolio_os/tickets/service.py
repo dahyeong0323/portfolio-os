@@ -38,24 +38,24 @@ class OrderTicketService:
         self.intents.update_status(intent.intent_id, "ticket_created")
         return ticket
 
-    def approve_ticket(self, order_ticket_id: int, reason: str | None = None) -> object:
+    def approve_ticket(self, order_ticket_id: int, reason: str | None = None, emotional_state: str | None = None) -> object:
         ticket = self.tickets.get(order_ticket_id)
         if ticket.status != "validated":
             raise ValueError("only validated tickets can be approved")
         if ticket.expires_at < datetime.now(timezone.utc):
             return self.tickets.update_status(order_ticket_id, "expired", "cancelled", "ticket expired")
         updated = self.tickets.update_status(order_ticket_id, "approved", "approved", reason)
-        DecisionJournalService(self.db).record_ticket_decision(order_ticket_id, "approved", reason)
+        DecisionJournalService(self.db).record_ticket_decision(order_ticket_id, "approved", reason, emotional_state)
         return updated
 
-    def reject_ticket(self, order_ticket_id: int, reason: str) -> object:
+    def reject_ticket(self, order_ticket_id: int, reason: str, emotional_state: str | None = None) -> object:
         if not reason:
             raise ValueError("rejection reason is required")
         ticket = self.tickets.get(order_ticket_id)
         if ticket.status != "validated":
             raise ValueError("only validated tickets can be rejected")
         updated = self.tickets.update_status(order_ticket_id, "rejected", "rejected", reason)
-        DecisionJournalService(self.db).record_ticket_decision(order_ticket_id, "rejected", reason)
+        DecisionJournalService(self.db).record_ticket_decision(order_ticket_id, "rejected", reason, emotional_state)
         return updated
 
     def modify_ticket(self, order_ticket_id: int, requested_quantity: Decimal | None, requested_notional: Decimal | None, reason: str):

@@ -4,19 +4,27 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Sequence
 
-from portfolio_os.db.pragmas import apply_pragmas
+from portfolio_os.db.pragmas import apply_pragmas, apply_read_only_pragmas
 
 
 class Database:
-    def __init__(self, db_path: Path) -> None:
+    def __init__(self, db_path: Path, *, read_only: bool = False) -> None:
         self.db_path = Path(db_path)
+        self.read_only = read_only
         self.connection: sqlite3.Connection | None = None
 
     def connect(self) -> None:
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.connection = sqlite3.connect(self.db_path)
+        if self.read_only:
+            uri = f"{self.db_path.resolve().as_uri()}?mode=ro"
+            self.connection = sqlite3.connect(uri, uri=True)
+        else:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            self.connection = sqlite3.connect(self.db_path)
         self.connection.row_factory = sqlite3.Row
-        apply_pragmas(self.connection)
+        if self.read_only:
+            apply_read_only_pragmas(self.connection)
+        else:
+            apply_pragmas(self.connection)
 
     def close(self) -> None:
         if self.connection is not None:

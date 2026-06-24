@@ -7,10 +7,18 @@ name = "portfolio-os"
 version = "0.1.0"
 description = "Ledger-first personal portfolio operating system, Stage 1."
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "fastapi>=0.111,<1",
+    "python-multipart>=0.0.9,<1",
+    "pydantic>=2.7,<3",
+    "uvicorn>=0.30,<1",
+]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = [
+    "httpx>=0.27,<1",
+    "pytest",
+]
 
 [project.scripts]
 portfolio-os = "portfolio_os.cli.main:main"

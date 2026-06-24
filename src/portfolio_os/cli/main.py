@@ -7,11 +7,9 @@ from decimal import Decimal
 from pathlib import Path
 
 from portfolio_os.db import Database, initialize_database
-from portfolio_os.importers import AccountSnapshotCSVImporter, load_external_snapshot, write_external_snapshot
-from portfolio_os.ledger import LedgerSnapshotBuilder
+from portfolio_os.importers import AccountSnapshotCSVImporter, write_external_snapshot
 from portfolio_os.models import CashBalance, Liability, TaxReserve, Transaction
-from portfolio_os.reconciliation import DEFAULT_TOLERANCE, ReconciliationService
-from portfolio_os.reconciliation.report_writer import ReconciliationReportWriter
+from portfolio_os.reconciliation import ReconciliationWorkflowService
 from portfolio_os.repositories import (
     AccountRepository,
     CashBalanceRepository,
@@ -292,26 +290,21 @@ def cmd_import_external_snapshot(args: argparse.Namespace) -> int:
 
 
 def cmd_run_reconciliation(args: argparse.Namespace) -> int:
-    snapshot = load_external_snapshot(args.snapshot_json)
     with Database(args.db) as db:
-        ledger = LedgerSnapshotBuilder(db).build_snapshot(snapshot.as_of_date, args.account_id)
-        result = ReconciliationService().run_reconciliation(ledger, snapshot, DEFAULT_TOLERANCE, account_id=args.account_id)
-        saved = ReconciliationRepository(db).save_reconciliation_result(result)
-        if saved.reconciliation_status == "passed":
-            tx_ids = [tx.transaction_id for tx in TransactionRepository(db).list_unconfirmed_transactions(args.account_id)]
-            TransactionRepository(db).mark_transactions_confirmed(tx_ids)
-            cash_ids = [
-                balance.cash_balance_id
-                for balance in CashBalanceRepository(db).list_cash_balances(args.account_id, snapshot.as_of_date)
-                if not balance.is_reconciled
-            ]
-            CashBalanceRepository(db).mark_cash_balances_reconciled(cash_ids)
-        writer = ReconciliationReportWriter()
-        md_path = args.report_dir / f"reconciliation_{saved.reconciliation_id}.md"
-        json_path = args.report_dir / f"reconciliation_{saved.reconciliation_id}.json"
-        writer.write_markdown_report(saved, md_path)
-        writer.write_json_report(saved, json_path)
-        print(dumps_json({"reconciliation_id": saved.reconciliation_id, "status": saved.reconciliation_status, "ledger_status": saved.ledger_status_after, "markdown": md_path, "json": json_path}))
+        outcome = ReconciliationWorkflowService(db).run_from_artifact(
+            args.snapshot_json,
+            args.account_id,
+            args.report_dir,
+        )
+        saved = outcome.reconciliation
+        print(dumps_json({
+            "reconciliation_id": saved.reconciliation_id,
+            "status": saved.reconciliation_status,
+            "ledger_status": saved.ledger_status_after,
+            "markdown": outcome.markdown_report,
+            "json": outcome.json_report,
+            "warnings": outcome.warnings,
+        }))
     return 0
 
 

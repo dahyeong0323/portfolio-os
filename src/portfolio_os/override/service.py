@@ -25,6 +25,7 @@ class OverrideService:
         requested_notional: Decimal | None,
         currency: str | None,
         human_reason: str,
+        emotional_state: str | None = None,
     ):
         ledger_status = LedgerStateMachine(self.db).get_current_status(account_id)
         now = utc_now().date()
@@ -43,13 +44,13 @@ class OverrideService:
             mandatory_reconciliation_deadline=now + timedelta(days=1),
             mandatory_postmortem_date=now + timedelta(days=7),
         )
-        DecisionJournalService(self.db).record_override_decision(override.override_ticket_id, "declared", human_reason)
+        DecisionJournalService(self.db).record_override_decision(override.override_ticket_id, "declared", human_reason, emotional_state)
         return override
 
-    def confirm_override(self, override_ticket_id: int, final_choice: str):
+    def confirm_override(self, override_ticket_id: int, final_choice: str, emotional_state: str | None = None):
         if final_choice not in {"execute", "cancel", "modify"}:
             raise ValueError("final_choice must be execute, cancel, or modify")
         status = "human_confirmed" if final_choice == "execute" else "cancelled"
         override = self.repo.update_status(override_ticket_id, status, final_choice)
-        DecisionJournalService(self.db).record_override_decision(override_ticket_id, final_choice, "override final choice")
+        DecisionJournalService(self.db).record_override_decision(override_ticket_id, final_choice, "override final choice", emotional_state)
         return override

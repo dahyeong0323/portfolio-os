@@ -173,6 +173,9 @@ class AccountRepository:
     def list_active_accounts(self) -> list[Account]:
         return [_account_from_row(row) for row in self.db.fetch_all("SELECT * FROM accounts WHERE is_active = 1 ORDER BY account_id")]
 
+    def list_all_accounts(self) -> list[Account]:
+        return [_account_from_row(row) for row in self.db.fetch_all("SELECT * FROM accounts ORDER BY account_id")]
+
     def deactivate_account(self, account_id: int, closed_date: date, notes: str | None = None) -> Account:
         self.db.execute(
             "UPDATE accounts SET is_active = 0, closed_date = ?, notes = COALESCE(?, notes), updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE account_id = ?",
@@ -233,6 +236,9 @@ class InstrumentRepository:
 
     def list_active_instruments(self) -> list[Instrument]:
         return [_instrument_from_row(row) for row in self.db.fetch_all("SELECT * FROM instruments WHERE is_active = 1 ORDER BY symbol")]
+
+    def list_all_instruments(self) -> list[Instrument]:
+        return [_instrument_from_row(row) for row in self.db.fetch_all("SELECT * FROM instruments ORDER BY symbol, instrument_id")]
 
 
 class TransactionRepository:
@@ -298,12 +304,19 @@ class TransactionRepository:
         sql += " ORDER BY trade_date, transaction_id"
         return [_transaction_from_row(row) for row in self.db.fetch_all(sql, params)]
 
-    def list_unconfirmed_transactions(self, account_id: int | None = None) -> list[Transaction]:
+    def list_unconfirmed_transactions(
+        self,
+        account_id: int | None = None,
+        through_date: date | None = None,
+    ) -> list[Transaction]:
         sql = "SELECT * FROM transactions WHERE is_confirmed = 0 AND is_voided = 0"
         params: list[Any] = []
         if account_id is not None:
             sql += " AND account_id = ?"
             params.append(account_id)
+        if through_date is not None:
+            sql += " AND trade_date <= ?"
+            params.append(date_to_text(through_date))
         return [_transaction_from_row(row) for row in self.db.fetch_all(sql, params)]
 
     def void_transaction(self, transaction_id: int, void_reason: str) -> Transaction:
@@ -530,6 +543,25 @@ class ReconciliationRepository:
             return self.db.fetch_one("SELECT * FROM reconciliation_snapshots ORDER BY completed_at DESC, reconciliation_id DESC LIMIT 1")
         return self.db.fetch_one(
             "SELECT * FROM reconciliation_snapshots WHERE account_id = ? OR account_id IS NULL ORDER BY completed_at DESC, reconciliation_id DESC LIMIT 1",
+            (account_id,),
+        )
+
+    def get_reconciliation(self, reconciliation_id: int) -> dict[str, Any] | None:
+        return self.db.fetch_one(
+            "SELECT * FROM reconciliation_snapshots WHERE reconciliation_id = ?",
+            (reconciliation_id,),
+        )
+
+    def get_latest_reconciled(self, account_id: int | None = None) -> dict[str, Any] | None:
+        if account_id is None:
+            return self.db.fetch_one(
+                "SELECT * FROM reconciliation_snapshots WHERE ledger_status_after = 'reconciled' "
+                "ORDER BY completed_at DESC, reconciliation_id DESC LIMIT 1"
+            )
+        return self.db.fetch_one(
+            "SELECT * FROM reconciliation_snapshots "
+            "WHERE ledger_status_after = 'reconciled' AND (account_id = ? OR account_id IS NULL) "
+            "ORDER BY completed_at DESC, reconciliation_id DESC LIMIT 1",
             (account_id,),
         )
 

@@ -84,3 +84,6 @@ class OverrideTicketRepository:
 
     def list_open(self) -> list[OverrideTicket]:
         return [override_from_row(row) for row in self.db.fetch_all("SELECT * FROM override_tickets WHERE status IN ('declared','risk_warned','human_confirmed') ORDER BY override_ticket_id")]
+
+    def list_all(self) -> list[OverrideTicket]:
+        return [override_from_row(row) for row in self.db.fetch_all("SELECT * FROM override_tickets ORDER BY override_ticket_id DESC")]
